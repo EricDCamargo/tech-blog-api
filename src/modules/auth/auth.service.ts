@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { SignUpBody } from './dto/SignUpBody.dto';
 import bcript from 'bcrypt';
 import { AT, Tokens } from './types/tokens.type';
@@ -13,6 +9,7 @@ import { Role } from 'generated/prisma/client';
 import { Response } from 'express';
 import { SignInBody } from './dto/SignInBody.dto';
 import { JwtPayload } from './types/jwt-payload.type';
+import { UserWithSameEmailException } from 'src/common/exceptions/UserWithSameEmailException';
 
 @Injectable()
 export class AuthService {
@@ -36,7 +33,7 @@ export class AuthService {
       where: { email: body.email },
     });
 
-    if (user) throw new ConflictException('User email already in use');
+    if (user) throw new UserWithSameEmailException();
 
     const hashedPw = await this.hashData(body.password);
     const newUser = await this.prisma.user.create({

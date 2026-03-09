@@ -1,42 +1,55 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 
-@Controller('user')
+import { Role } from 'generated/prisma/client';
+import { UpdateUserDto } from './dto/updateUser.dto';
+import { GetCurrentUserId } from 'src/common/decorators/getCurrentUserId.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { UpdateUserRoleDto } from './dto/updateUserRole.dto';
+
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  @Get('me')
+  getMe(@GetCurrentUserId() userId: string) {
+    return this.userService.findById(userId);
+  }
+
+  @Patch('update')
+  updateMe(
+    @GetCurrentUserId() userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.userService.updateMe(userId, updateUserDto);
   }
 
   @Get()
+  @Roles(Role.ADMIN)
   findAll() {
     return this.userService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  @Patch(':id/role')
+  @Roles(Role.SUPER_ADMIN)
+  updateRole(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateUserRoleDto,
+  ) {
+    return this.userService.updateRole(id, body.role);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @Roles(Role.SUPER_ADMIN)
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.userService.remove(id);
   }
 }

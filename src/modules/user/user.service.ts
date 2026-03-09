@@ -1,26 +1,85 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/database/prisma/prisma.service';
+import { Role } from 'generated/prisma/client';
+import { UpdateUserDto } from './dto/updateUser.dto';
+import bcript from 'bcrypt';
+import { UserWithSameEmailException } from 'src/common/exceptions/UserWithSameEmailException';
 
 @Injectable()
 export class UserService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(private prisma: PrismaService) {}
+
+  private userSelect = {
+    id: true,
+    name: true,
+    email: true,
+    bio: true,
+    role: true,
+    profileImg: true,
+    createdAt: true,
+  };
+
+  async checkUserExists(key: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: key },
+      select: this.userSelect,
+    });
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+
+    return user;
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findAll() {
+    return this.prisma.user.findMany({
+      select: this.userSelect,
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findById(id: string) {
+    return await this.checkUserExists(id);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async updateMe(userId: string, data: UpdateUserDto) {
+    if (data.email) {
+      const emailAlreadyExists = await this.prisma.user.findFirst({
+        where: {
+          email: data.email,
+          NOT: {
+            id: userId,
+          },
+        },
+      });
+
+      if (emailAlreadyExists) throw new UserWithSameEmailException();
+    }
+    const updateData = { ...data };
+
+    if (data.password) {
+      const salt = await bcript.genSalt(10);
+      updateData.password = await bcript.hash(data.password, salt);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: this.userSelect,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async updateRole(id: string, role: Role) {
+    await this.checkUserExists(id);
+
+    return await this.prisma.user.update({
+      where: { id },
+      data: { role },
+      select: this.userSelect,
+    });
+  }
+
+  async remove(id: string) {
+    await this.checkUserExists(id);
+
+    await this.prisma.user.delete({ where: { id } });
+    return { message: 'Usuário removido com sucesso' };
   }
 }

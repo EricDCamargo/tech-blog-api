@@ -10,15 +10,15 @@ import {
 
 import { AuthService } from './auth.service';
 import { SignUpBody } from './dto/SignUpBody.dto';
-import { Public } from './decorators/isPublic.decorator';
 import { RtGuard } from './guards/rt.guard';
-import { RolesGuard } from './guards/roles.guard';
-import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
-import { GetCurrentUser } from './decorators/getCurrentUser.decorator';
 import type { Response } from 'express';
 import { SignInBody } from './dto/SignInBody.dto';
-import { Roles } from './decorators/roles.decorator';
 import { Role } from 'generated/prisma/enums';
+
+import { GetCurrentUser } from 'src/common/decorators/getCurrentUser.decorator';
+import { GetCurrentUserId } from 'src/common/decorators/getCurrentUserId.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Public } from 'src/common/decorators/isPublic.decorator';
 
 @Controller('auth')
 export class AuthController {
