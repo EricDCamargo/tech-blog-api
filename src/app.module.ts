@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './modules/auth/guards/at.guard';
 import { ConfigModule } from '@nestjs/config';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     DatabaseModule,
     UserModule,
     AuthModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [
