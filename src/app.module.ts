@@ -11,6 +11,7 @@ import { AtGuard } from './modules/auth/guards/at.guard';
 import { ConfigModule } from '@nestjs/config';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { CategoryModule } from './modules/category/category.module';
+import { ArticleModule } from './modules/article/article.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CategoryModule } from './modules/category/category.module';
     UserModule,
     AuthModule,
     CategoryModule,
+    ArticleModule,
   ],
   controllers: [AppController],
   providers: [

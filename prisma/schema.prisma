@@ -45,14 +45,15 @@ model User {
 }
 
 model Article {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
-  slug        String @unique
-  description String @db.Text
+  slug        String  @unique
+  description String  @db.Text
   banner      String
-  content     String @db.Text
-  views       Int    @default(0)
-  readingTime Int    @default(0)
+  content     String  @db.Text
+  published   Boolean @default(false)
+  views       Int     @default(0)
+  readingTime Int     @default(0)
 
   category   Category @relation(fields: [categoryId], references: [id])
   categoryId String
