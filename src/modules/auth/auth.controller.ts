@@ -5,14 +5,16 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
 import { Public } from './decorators/isPublic';
-import { Tokens } from './types/tokens.type';
 import { RtGuard } from './guards/rt.guard';
 import { GetCurrentUserId } from './decorators/getCurrentUserId';
 import { GetCurrentUser } from './decorators/getCurrentUser';
+import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -21,21 +23,27 @@ export class AuthController {
   @Public()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  signup(@Body() dto: AuthDto): Promise<Tokens> {
-    return this.authService.signup(dto);
+  signup(
+    @Body() dto: AuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ access_token: string }> {
+    return this.authService.signup(dto, res);
   }
 
   @Public()
   @Post('signin')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: AuthDto) {
-    return this.authService.signin(dto);
+  login(@Body() dto: AuthDto, @Res({ passthrough: true }) res: Response) {
+    return this.authService.signin(dto, res);
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@GetCurrentUserId() userId: string) {
-    return this.authService.logout(userId);
+  logout(
+    @GetCurrentUserId() userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logout(userId, res);
   }
 
   @Public()
@@ -45,7 +53,8 @@ export class AuthController {
   refresh(
     @GetCurrentUserId() userId: string,
     @GetCurrentUser('refreshToken') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.refreshTokens(userId, refreshToken);
+    return this.authService.refreshTokens(userId, refreshToken, res);
   }
 }

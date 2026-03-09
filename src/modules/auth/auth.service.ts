@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/database/prisma/prisma.service';
 import { Role } from 'generated/prisma/client';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +16,16 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async signup(dto: AuthDto): Promise<Tokens> {
+  private setRtCookie(res: Response, rt: string) {
+    res.cookie('refreshToken', rt, {
+      httpOnly: true,
+      secure: this.configService.getOrThrow('ENVIRONMENT') === 'PROD',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  async signup(dto: AuthDto, res: Response): Promise<{ access_token: string }> {
     const hashedPw = await this.hashData(dto.password);
     const newUser = await this.prisma.user.create({
       data: {
@@ -30,25 +40,33 @@ export class AuthService {
       newUser.email,
       newUser.role,
     );
+
     await this.updateRtHash(newUser.id, tokens.refresh_token);
-    return tokens;
+    this.setRtCookie(res, tokens.refresh_token);
+
+    return { access_token: tokens.access_token };
   }
-  async signin(dto: AuthDto): Promise<Tokens> {
+
+  async signin(dto: AuthDto, res: Response): Promise<{ access_token: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
+
     if (!user) throw new ForbiddenException('Access Denied');
 
     const passwordMatches = await bcript.compare(dto.password, user.password);
-
     if (!passwordMatches) throw new ForbiddenException('Access Denied');
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
+
     await this.updateRtHash(user.id, tokens.refresh_token);
-    return tokens;
+    this.setRtCookie(res, tokens.refresh_token); // Envia o RT via Cookie
+
+    return { access_token: tokens.access_token }; // Retorna apenas o AT no JSON
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, res: Response) {
+    // Limpa o hash no banco de dados para invalidar futuras renovações
     await this.prisma.user.updateMany({
       where: {
         id: userId,
@@ -58,8 +76,16 @@ export class AuthService {
       },
       data: { hashedRt: null },
     });
+
+    res.clearCookie('refreshToken'); // Remove o cookie do navegador
+    return { message: 'Logged out successfully' };
   }
-  async refreshTokens(userId: string, rt: string) {
+
+  async refreshTokens(
+    userId: string,
+    rt: string,
+    res: Response,
+  ): Promise<{ access_token: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -67,13 +93,14 @@ export class AuthService {
     if (!user || !user.hashedRt) throw new ForbiddenException('Access Denied');
 
     const rtMatches = await bcript.compare(rt, user.hashedRt);
-
     if (!rtMatches) throw new ForbiddenException('Access Denied');
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
-    await this.updateRtHash(user.id, tokens.refresh_token);
 
-    return tokens;
+    await this.updateRtHash(user.id, tokens.refresh_token);
+    this.setRtCookie(res, tokens.refresh_token); // Rotaciona o cookie com um novo RT
+
+    return { access_token: tokens.access_token }; // Retorna apenas o novo AT
   }
 
   async hashData(data: string) {
