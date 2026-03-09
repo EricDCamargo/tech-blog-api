@@ -9,12 +9,16 @@ import {
 } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
-import { AuthDto } from './dto/auth.dto';
-import { Public } from './decorators/isPublic';
+import { SignUpBody } from './dto/SignUpBody.dto';
+import { Public } from './decorators/isPublic.decorator';
 import { RtGuard } from './guards/rt.guard';
-import { GetCurrentUserId } from './decorators/getCurrentUserId';
-import { GetCurrentUser } from './decorators/getCurrentUser';
+import { RolesGuard } from './guards/roles.guard';
+import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
+import { GetCurrentUser } from './decorators/getCurrentUser.decorator';
 import type { Response } from 'express';
+import { SignInBody } from './dto/SignInBody.dto';
+import { Roles } from './decorators/roles.decorator';
+import { Role } from 'generated/prisma/enums';
 
 @Controller('auth')
 export class AuthController {
@@ -24,19 +28,20 @@ export class AuthController {
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   signup(
-    @Body() dto: AuthDto,
+    @Body() body: SignUpBody,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ access_token: string }> {
-    return this.authService.signup(dto, res);
+    return this.authService.signup(body, res);
   }
 
   @Public()
   @Post('signin')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: AuthDto, @Res({ passthrough: true }) res: Response) {
-    return this.authService.signin(dto, res);
+  login(@Body() body: SignInBody, @Res({ passthrough: true }) res: Response) {
+    return this.authService.signin(body, res);
   }
 
+  @Roles(Role.SUPER_ADMIN)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(

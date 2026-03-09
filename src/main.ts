@@ -1,16 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { ValidationError, ValidationPipe } from '@nestjs/common';
-import { IncorrectValuesExceptions } from './exceptions/incorrectValuesExceptions';
+import { IncorrectValuesExceptions } from './common/exceptions/incorrectValuesExceptions';
 import { mapperClassValidationErrorToAppException } from './utils/mappers';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser());
-  const configService = app.get(ConfigService);
+  const configService = app.get<ConfigService>(ConfigService);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -22,7 +22,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = configService.getOrThrow<number>('PORT');
+  const port = configService.getOrThrow('PORT');
 
   await app.listen(port);
   console.log(`App is runing on port: ${port} 🚀`);

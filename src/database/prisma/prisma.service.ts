@@ -9,7 +9,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor(configService: ConfigService) {
-    const url = configService.getOrThrow<string>('DATABASE_URL');
+    const url = configService.getOrThrow('DATABASE_URL');
     const adapter = new PrismaMariaDb(url);
     super({ adapter });
   }
